@@ -15,12 +15,16 @@ class ViewController: UIViewController, CLLocationManagerDelegate,MKMapViewDeleg
     
     let locationManager = CLLocationManager()
     
-    var lat = 0.0
-    var long = 0.0
+ //   var lat = 0.0
+ //   var long = 0.0
     
-    var sendingName: [String] = []
-    var sendingLat: [Double] = []
-    var sendingLong: [Double] = []
+    var location : Location = Location()
+    
+    var sendingLocation = [Location]()
+    
+//    var sendingName: [String] = []
+//    var sendingLat: [Double] = []
+//    var sendingLong: [Double] = []
     
     
     @IBOutlet weak var latLongLabelMap: UILabel!
@@ -54,7 +58,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate,MKMapViewDeleg
     @IBAction func shareButtonAction(_ sender: Any) {
         
         let activity = UIActivityViewController(
-            activityItems: ["Here is my current address: \(AddressLabel.text!)  Coordinates are:( \(lat), \(long))"],
+            activityItems: ["Here is my current address: \(AddressLabel.text!)  Coordinates are:( \(location.latitude), \(location.longitude))"],
             applicationActivities: nil
         )
         // activity.popoverPresentationController? = sender
@@ -66,12 +70,12 @@ class ViewController: UIViewController, CLLocationManagerDelegate,MKMapViewDeleg
     
     @IBAction func showOnGoogleMapsButton(_ sender: Any) {
         
-        if !sendingName.isEmpty{
-            let source = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: lat, longitude: long)))
+        if !sendingLocation.isEmpty{
+            let source = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude)))
             source.name = "Source"
             
-            let destination = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: lat, longitude: long)))
-            destination.name = self.sendingName.reversed()[0]
+            let destination = MKMapItem(placemark: MKPlacemark(coordinate: CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude)))
+            destination.name = self.sendingLocation.reversed()[0].name
             
             MKMapItem.openMaps(with: [source, destination], launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDriving])
         }else {
@@ -98,10 +102,12 @@ class ViewController: UIViewController, CLLocationManagerDelegate,MKMapViewDeleg
             
             if let name = alert.textFields?.first?.text {
                 print("Your name: \(name)")
-                self.sendingName.append(name)
-                self.sendingLat.append(self.lat)
-                self.sendingLong.append(self.long)
-                print(self.sendingLat,self.sendingLong,"dekh")
+                self.sendingLocation.append(Location(name, self.location.latitude, self.location.longitude, Date()))
+                
+//                self.sendingName.append(name)
+//                self.sendingLat.append(self.location.latitude)
+//                self.sendingLong.append(self.location.longitude)
+//                print(self.sendingLat,self.sendingLong,"dekh")
                 
                 
             }
@@ -120,7 +126,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate,MKMapViewDeleg
         
         
         let annotation = MKPointAnnotation()
-        annotation.coordinate = CLLocationCoordinate2D(latitude: lat, longitude: long)
+        annotation.coordinate = CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude)
         // mapView.addAnnotation(annotation)
         print("this is annotation", annotation.coordinate)
     }
@@ -143,10 +149,12 @@ class ViewController: UIViewController, CLLocationManagerDelegate,MKMapViewDeleg
         
         if  segue.identifier == blogSegueIdentifier,
             let destination = segue.destination as? NewTableViewController {
-            destination.storedAddressArray = sendingName
-            destination.storedLatArray = sendingLat
-            destination.storedLongArray = sendingLong
+              destination.storedLocation = sendingLocation
             
+//            destination.storedAddressArray = sendingName
+//            destination.storedLatArray = sendingLat
+//            destination.storedLongArray = sendingLong
+//
             
         }
         
@@ -193,8 +201,8 @@ class ViewController: UIViewController, CLLocationManagerDelegate,MKMapViewDeleg
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         
         let locValue:CLLocationCoordinate2D = manager.location!.coordinate
-        self.lat = locValue.latitude
-        self.long = locValue.longitude
+        self.location.latitude = locValue.latitude
+        self.location.longitude = locValue.longitude
         print(locValue.latitude,"hi")
         latLongLabelMap.text = "\(locValue.latitude), \(locValue.longitude)"
         self.mapView.mapType = MKMapType.standard
@@ -203,21 +211,18 @@ class ViewController: UIViewController, CLLocationManagerDelegate,MKMapViewDeleg
         let region = MKCoordinateRegion(center: locValue, span: span)
         self.mapView.setRegion(region, animated: true)
         
-        getAddressFromLatLon(pdblLatitude: "\(lat)", withLongitude: "\(long)")
+        getAddressFromLatLon(pdblLatitude: "\(location.latitude)", withLongitude: "\(location.longitude)")
         
     }
     
     func getAddressFromLatLon(pdblLatitude: String, withLongitude pdblLongitude: String) {
         var center : CLLocationCoordinate2D = CLLocationCoordinate2D()
-        let lat: Double = Double("\(pdblLatitude)")!
-        //21.228124
-        let lon: Double = Double("\(pdblLongitude)")!
-        //72.833770
-        let ceo: CLGeocoder = CLGeocoder()
-        center.latitude = lat
-        center.longitude = lon
         
-        let loc: CLLocation = CLLocation(latitude:center.latitude, longitude: center.longitude)
+        let ceo: CLGeocoder = CLGeocoder()
+        center.latitude = Double("\(pdblLatitude)")!
+        center.longitude = Double("\(pdblLongitude)")!
+        
+        let loc: CLLocation = CLLocation(latitude: center.latitude, longitude: center.longitude)
         
         
         ceo.reverseGeocodeLocation(loc, completionHandler:
